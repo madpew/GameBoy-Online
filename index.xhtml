@@ -4,22 +4,18 @@
     <head>
         <style type="text/css">@import url(&quot;GameBoy.css&quot;);</style>
 		
-        <script type="text/javascript" src="rom.js" />
+		<script type="text/javascript" src="rom.js" />
 		
         <script type="text/javascript">
-
 		window.onload = function () {
-			windowingInitialize();
+			// only works when hosted on the web (also: CORS!)
+			//loadBinaryRom("spam.gb");
 			
-			//loadRom(mainCanvas, "http://pixelsiege.net/spamfactory/spam.gb");
-			
-			start(mainCanvas, window.atob(default_rom_data));
+			// spam_rom is a base64 encoded rom defined in rom.js included above
+			loadBase64Rom(spam_rom);
 		}
-        
 		</script>
 		
-        <script type="text/javascript" src="js/other/gui.js"/>
-        <script type="text/javascript" src="js/other/json2.js"/>
         <script type="text/javascript" src="js/other/swfobject.js"/>
         <script type="text/javascript" src="js/other/resampler.js"/>
         <script type="text/javascript" src="js/other/XAudioServer.js"/>
@@ -29,10 +25,25 @@
         <title>GameBoy Online</title>
     </head>
     <body>
-		SPAM FACTORY Inc.<br />
-	
-        <div id="gameboy-screen">
-            <canvas id="mainCanvas" width="160" height="144" />
-        </div>
+		
+	<div class="gameboy gameboy-1x">	
+		<div id="gameboy-screen-border">
+			<div id="gameboy-screen">
+				<canvas id="gameboy-canvas" width="160" height="144" />
+			</div>
+		</div>
+		<div id="gameboy-label"><small>Ninetendo</small>GAMETOY</div>
+		<div id="gameboy-content">
+			Instructions<br />
+			Keys<br />
+			UP/DOWN/LEFT/RIGHT: CURSORS<br />
+			A: W S X J _<br />
+			B: Q A Y Z<br />
+			START: RETURN/ENTER<br /> 
+			SELECT: SHIFT<br />
+			Download<br />
+			Info
+		</div>
+    </div>
     </body>
 </html>

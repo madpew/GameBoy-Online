@@ -5,7 +5,7 @@ var settings = [						//Some settings.
 	true, 								//Turn on sound.
 	false,								//Boot with boot ROM first?
 	false,								//Give priority to GameBoy mode
-	1,									//Volume level set.
+	0.8,								//Volume level set.
 	true,								//Colorize GB mode?
 	false,								//Disallow typed arrays?
 	8,									//Interval for the emulator loop.
@@ -19,36 +19,112 @@ var settings = [						//Some settings.
     [true, true, true, true]            //User controlled channel enables.
 ];
 
-function loadRom(canvas, romFilePath)
+var keyZones = [
+	["right", [39]],
+	["left", [37]],
+	["up", [38]],
+	["down", [40]],
+	["a", [88, 87, 74, 83, 32]],
+	["b", [90, 81, 89, 65]],
+	["select", [16]],
+	["start", [13]]
+];
+
+var gameboyColors = [0xacb56b, 0x768448, 0x4f604f, 0x344147];
+
+function findCanvas()
+{
+	return document.getElementById("gameboy-canvas");
+}
+
+function loadBinaryRom(romFilePath)
 {
 	var xhr = new XMLHttpRequest(); 
 	xhr.open("GET", romFilePath); 
-	xhr.responseType = "blob";
+	xhr.responseType = 'arraybuffer';
+
 	xhr.onload = function(e) 
 	{
 		if (this.status == 200) {
-
-            var reader = new FileReader();
-			
-            reader.onload = function (e) {
-				start(canvas, e.target.result);
-            };
-
-            reader.readAsArrayBuffer(this.response);
+			var responseArray = new Uint8Array(this.response); 
+            start(findCanvas(), responseArray);
         }
 	}
+	
 	xhr.send();
 }
 
+function loadBase64Rom(romString)
+{
+	var raw = window.atob(romString);
+	var rawLength = raw.length;
+	var array = new Uint8Array(new ArrayBuffer(rawLength));
+
+	for(var i = 0; i != rawLength; i++) {
+		array[i] = raw.charCodeAt(i);
+	}
+
+	start(findCanvas(), array);
+}
+
+function keyDown(event) {
+	var keyCode = event.keyCode;
+	var keyMapLength = keyZones.length;
+	for (var keyMapIndex = 0; keyMapIndex < keyMapLength; ++keyMapIndex) {
+		var keyCheck = keyZones[keyMapIndex];
+		var keysMapped = keyCheck[1];
+		var keysTotal = keysMapped.length;
+		for (var index = 0; index < keysTotal; ++index) {
+			if (keysMapped[index] == keyCode) {
+				GameBoyKeyDown(keyCheck[0]);
+				try {
+					event.preventDefault();
+				}
+				catch (error) { }
+			}
+		}
+	}
+}
+
+function keyUp(event) {
+	var keyCode = event.keyCode;
+	var keyMapLength = keyZones.length;
+	for (var keyMapIndex = 0; keyMapIndex < keyMapLength; ++keyMapIndex) {
+		var keyCheck = keyZones[keyMapIndex];
+		var keysMapped = keyCheck[1];
+		var keysTotal = keysMapped.length;
+		for (var index = 0; index < keysTotal; ++index) {
+			if (keysMapped[index] == keyCode) {
+				GameBoyKeyUp(keyCheck[0]);
+				try {
+					event.preventDefault();
+				}
+				catch (error) { }
+			}
+		}
+	}
+}
+
+function addEvent(sEvent, oElement, fListener) {
+	try {	
+		oElement.addEventListener(sEvent, fListener, false);
+	}
+	catch (error) {
+		oElement.attachEvent("on" + sEvent, fListener);	//Pity for IE.
+	}
+}
+
 function start(canvas, ROM) {
+	
+	addEvent("keydown", document, keyDown);
+	addEvent("keyup", document,  keyUp);
+	
 	clearLastEmulation();
-	autoSave();	//If we are about to load a new game, then save the last one...
 	gameboy = new GameBoyCore(canvas, ROM);
-	gameboy.openMBC = openSRAM;
-	gameboy.openRTC = openRTC;
 	gameboy.start();
 	run();
 }
+
 function run() {
 	if (GameBoyEmulatorInitialized()) {
 		if (!GameBoyEmulatorPlaying()) {
@@ -68,7 +144,7 @@ function run() {
 function pause() {
 	if (GameBoyEmulatorInitialized()) {
 		if (GameBoyEmulatorPlaying()) {
-			autoSave();
+			//autoSave();
 			clearLastEmulation();
 		}
 	}
@@ -81,218 +157,6 @@ function clearLastEmulation() {
 	}
 }
 
-
-function saveSRAM() {
-	if (GameBoyEmulatorInitialized()) {
-		if (gameboy.cBATT) {
-			try {
-				var sram = gameboy.saveSRAMState();
-				if (sram.length > 0) {
-					if (findValue("SRAM_" + gameboy.name) != null) {
-						//Remove the outdated storage format save:
-						deleteValue("SRAM_" + gameboy.name);
-					}
-					setValue("B64_SRAM_" + gameboy.name, arrayToBase64(sram));
-				}
-				else {
-				}
-			}
-			catch (error) {
-			}
-		}
-		saveRTC();
-	}
-}
-function saveRTC() {	//Execute this when SRAM is being saved as well.
-	if (GameBoyEmulatorInitialized()) {
-		if (gameboy.cTIMER) {
-			try {
-				setValue("RTC_" + gameboy.name, gameboy.saveRTCState());
-			}
-			catch (error) {
-			}
-		}
-	}
-}
-
-function autoSave() {
-	if (GameBoyEmulatorInitialized()) {
-		saveSRAM();
-		saveRTC();
-	}
-}
-
-function openSRAM(filename) {
-	try {
-		if (findValue("B64_SRAM_" + filename) != null) {
-			return base64ToArray(findValue("B64_SRAM_" + filename));
-		}
-		else if (findValue("SRAM_" + filename) != null) {
-			return findValue("SRAM_" + filename);
-		}
-	}
-	catch (error) {
-	}
-	return [];
-}
-function openRTC(filename) {
-	try {
-		if (findValue("RTC_" + filename) != null) {
-			return findValue("RTC_" + filename);
-		}
-	}
-	catch (error) {
-	}
-	return [];
-}
-
-function saveState(filename) {
-	if (GameBoyEmulatorInitialized()) {
-		try {
-			setValue(filename, gameboy.saveState());
-		}
-		catch (error) {
-		}
-	}
-}
-function openState(filename, canvas) {
-	try {
-		if (findValue(filename) != null) {
-			try {
-				clearLastEmulation();
-				gameboy = new GameBoyCore(canvas, "");
-				gameboy.savedStateFileName = filename;
-				gameboy.returnFromState(findValue(filename));
-				run();
-			}
-			catch (error) {
-				alert(error.message + " file: " + error.fileName + " line: " + error.lineNumber);
-			}
-		}
-	}
-	catch (error) {
-	}
-}
-function import_save(blobData) {
-	blobData = decodeBlob(blobData);
-	if (blobData && blobData.blobs) {
-		if (blobData.blobs.length > 0) {
-			for (var index = 0; index < blobData.blobs.length; ++index) {
-				if (blobData.blobs[index].blobContent) {
-					if (blobData.blobs[index].blobID.substring(0, 5) == "SRAM_") {
-						setValue("B64_" + blobData.blobs[index].blobID, base64(blobData.blobs[index].blobContent));
-					}
-					else {
-						setValue(blobData.blobs[index].blobID, JSON.parse(blobData.blobs[index].blobContent));
-					}
-				}
-			}
-		}
-	}
-}
-function generateBlob(keyName, encodedData) {
-	//Append the file format prefix:
-	var saveString = "EMULATOR_DATA";
-	var consoleID = "GameBoy";
-	//Figure out the length:
-	var totalLength = (saveString.length + 4 + (1 + consoleID.length)) + ((1 + keyName.length) + (4 + encodedData.length));
-	//Append the total length in bytes:
-	saveString += to_little_endian_dword(totalLength);
-	//Append the console ID text's length:
-	saveString += to_byte(consoleID.length);
-	//Append the console ID text:
-	saveString += consoleID;
-	//Append the blob ID:
-	saveString += to_byte(keyName.length);
-	saveString += keyName;
-	//Now append the save data:
-	saveString += to_little_endian_dword(encodedData.length);
-	saveString += encodedData;
-	return saveString;
-}
-function generateMultiBlob(blobPairs) {
-	var consoleID = "GameBoy";
-	//Figure out the initial length:
-	var totalLength = 13 + 4 + 1 + consoleID.length;
-	//Append the console ID text's length:
-	var saveString = to_byte(consoleID.length);
-	//Append the console ID text:
-	saveString += consoleID;
-	var keyName = "";
-	var encodedData = "";
-	//Now append all the blobs:
-	for (var index = 0; index < blobPairs.length; ++index) {
-		keyName = blobPairs[index][0];
-		encodedData = blobPairs[index][1];
-		//Append the blob ID:
-		saveString += to_byte(keyName.length);
-		saveString += keyName;
-		//Now append the save data:
-		saveString += to_little_endian_dword(encodedData.length);
-		saveString += encodedData;
-		//Update the total length:
-		totalLength += 1 + keyName.length + 4 + encodedData.length;
-	}
-	//Now add the prefix:
-	saveString = "EMULATOR_DATA" + to_little_endian_dword(totalLength) + saveString;
-	return saveString;
-}
-function decodeBlob(blobData) {
-	/*Format is as follows:
-		- 13 byte string "EMULATOR_DATA"
-		- 4 byte total size (including these 4 bytes).
-		- 1 byte Console type ID length
-		- Console type ID text of 8 bit size
-		blobs {
-			- 1 byte blob ID length
-			- blob ID text (Used to say what the data is (SRAM/freeze state/etc...))
-			- 4 byte blob length
-			- blob length of 32 bit size
-		}
-	*/
-	var length = blobData.length;
-	var blobProperties = {};
-	blobProperties.consoleID = null;
-	var blobsCount = -1;
-	blobProperties.blobs = [];
-	if (length > 17) {
-		if (blobData.substring(0, 13) == "EMULATOR_DATA") {
-			var length = Math.min(((blobData.charCodeAt(16) & 0xFF) << 24) | ((blobData.charCodeAt(15) & 0xFF) << 16) | ((blobData.charCodeAt(14) & 0xFF) << 8) | (blobData.charCodeAt(13) & 0xFF), length);
-			var consoleIDLength = blobData.charCodeAt(17) & 0xFF;
-			if (length > 17 + consoleIDLength) {
-				blobProperties.consoleID = blobData.substring(18, 18 + consoleIDLength);
-				var blobIDLength = 0;
-				var blobLength = 0;
-				for (var index = 18 + consoleIDLength; index < length;) {
-					blobIDLength = blobData.charCodeAt(index++) & 0xFF;
-					if (index + blobIDLength < length) {
-						blobProperties.blobs[++blobsCount] = {};
-						blobProperties.blobs[blobsCount].blobID = blobData.substring(index, index + blobIDLength);
-						index += blobIDLength;
-						if (index + 4 < length) {
-							blobLength = ((blobData.charCodeAt(index + 3) & 0xFF) << 24) | ((blobData.charCodeAt(index + 2) & 0xFF) << 16) | ((blobData.charCodeAt(index + 1) & 0xFF) << 8) | (blobData.charCodeAt(index) & 0xFF);
-							index += 4;
-							if (index + blobLength <= length) {
-								blobProperties.blobs[blobsCount].blobContent =  blobData.substring(index, index + blobLength);
-								index += blobLength;
-							}
-							else {
-								break;
-							}
-						}
-						else {
-							break;
-						}
-					}
-					else {
-						break;
-					}
-				}
-			}
-		}
-	}
-	return blobProperties;
-}
 function matchKey(key) {	//Maps a keyboard key to a gameboy key.
 	//Order: Right, Left, Up, Down, A, B, Select, Start
 	var keymap = ["right", "left", "up", "down", "a", "b", "select", "start"];	//Keyboard button map.

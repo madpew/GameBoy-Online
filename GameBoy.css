@@ -1,6 +1,6 @@
 @charset "utf-8";
 html {
-    background-color:black;
+    background-color:#eee;
     margin: 0;
 	padding: 0;
 	font-family: arial;
@@ -22,16 +22,19 @@ body {
 	border: none;
 	margin: 0;
 	padding: 0;
+	text-align:center;
 }
+
+
 
 #gameboy-screen {
 	margin: 0 auto;
 	padding: 0;
-	width: 480px;
-	height: 432px;
+	width: 160px;
+	height: 144px;
 }
 
-#gameboy-screen > canvas {
+#gameboy-canvas {
 	width:100%;
 	height:100%;
 	image-rendering: optimizeSpeed;
@@ -40,4 +43,108 @@ body {
     image-rendering: optimize-contrast;
     image-rendering: pixelated;
     -ms-interpolation-mode: nearest-neighbor;
+	border:3px solid #acb56b;
+}
+
+.gameboy-2x #gameboy-canvas{
+	border:6px solid #acb56b;
+}
+
+.gameboy-3x #gameboy-canvas{
+	border:9px solid #acb56b;
+}
+
+.gameboy-2x #gameboy-screen {
+	width: 320px;
+	height: 288px;
+}
+
+.gameboy-3x #gameboy-screen {
+	width: 480px;
+	height: 432px;
+}
+
+#gameboy-screen-border {
+	display:inline-block;
+	background-color: #333;
+
+	padding:22px 42px;
+	border-radius:7px;
+	border-bottom-right-radius: 42px;
+}
+
+.gameboy-2x #gameboy-screen-border {
+	padding:44px 84px;
+	border-radius:14px;
+	border-bottom-right-radius: 84px;
+}
+
+.gameboy-3x #gameboy-screen-border {
+	padding:66px 126px;
+	border-radius:22px;
+	border-bottom-right-radius: 126px;
+}
+
+.gameboy {
+	margin:0 auto;
+	display:inline-block;
+	background-color: #A0A09F;
+	text-align:left;
+	
+	padding:40px 20px;
+	border-radius:11px;
+	height:393px;
+	border-bottom-right-radius: 60px;
+	box-shadow: 0px 5px 50px rgba(0,0,0,0.4);
+}
+
+.gameboy-2x.gameboy {
+	padding:80px 40px;
+	border-radius:22px;
+	height:786px;
+	border-bottom-right-radius: 120px;
+	box-shadow: 0px 10px 100px rgba(0,0,0,0.4);
+}
+
+.gameboy-3x.gameboy {
+	padding:120px 60px;
+	border-radius:33px;
+	height:1179px;
+	border-bottom-right-radius: 180px;
+	box-shadow: 0px 15px 150px rgba(0,0,0,0.4);
+}
+
+#gameboy-label {
+	color: #050F51;
+	font-weight:bold;
+	font-style:italic;
+	font-size:20px;
+	margin-top:4px;
+}
+
+.gameboy-2x #gameboy-label {
+	font-size:40px;
+	margin-top:8px;
+}
+
+.gameboy-3x #gameboy-label {
+	font-size:60px;
+	margin-top:12px;
+}
+
+#gameboy-label > small {
+	font-style:normal;
+	font-size:70%;
+}
+
+#gameboy-content {
+	margin-top: 40px;
+}
+
+.gameboy-2x #gameboy-content {
+	margin-top: 80px;
+}
+
+.gameboy-3x #gameboy-content {
+	margin-top: 120px;
 }
